@@ -1,1 +1,1435 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FX取引分析ツール - Enhanced Edition</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        
+        /* ヘッダー */
+        header { 
+            text-align: center; 
+            color: white; 
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+        }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        
+        /* アップロードセクション */
+        .upload-section { 
+            background: white; 
+            border-radius: 20px; 
+            padding: 30px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); 
+            margin-bottom: 30px;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .file-input-wrapper, .demo-button { 
+            position: relative; 
+            overflow: hidden; 
+            display: inline-block; 
+            cursor: pointer; 
+            color: white; 
+            padding: 15px 40px; 
+            border-radius: 30px;
+            font-weight: 600;
+            transition: transform 0.3s;
+            border: none;
+            font-size: 16px;
+        }
+        .file-input-wrapper {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .demo-button {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        }
+        .file-input-wrapper:hover, .demo-button:hover { transform: translateY(-2px); }
+        #fileInput { position: absolute; left: -9999px; }
+        
+        /* 分析カード共通 */
+        .analysis-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .analysis-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        /* メトリクスグリッド */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .metric-item {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .metric-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            font-size: 0.85em;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .positive { color: #48bb78; }
+        .negative { color: #f56565; }
+        .neutral { color: #4a5568; }
+        
+        /* パフォーマンスバッジ */
+        .performance-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+        .badge-excellent { background: #48bb78; color: white; }
+        .badge-good { background: #4299e1; color: white; }
+        .badge-warning { background: #ed8936; color: white; }
+        .badge-danger { background: #f56565; color: white; }
+        
+        /* テーブル */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.95em;
+        }
+        .data-table th {
+            background: #f7fafc;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #4a5568;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .data-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .data-table tr:hover {
+            background: #f7fafc;
+        }
+        
+        /* 方向別表示 */
+        .direction-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .direction-box {
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .long-box {
+            background: rgba(72, 187, 120, 0.1);
+            border: 2px solid #48bb78;
+        }
+        .short-box {
+            background: rgba(245, 101, 101, 0.1);
+            border: 2px solid #f56565;
+        }
+        
+        /* チャートコンテナ */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        /* ローディング */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* エラーメッセージ */
+        .error-message {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        /* タブナビゲーション */
+        .tab-navigation {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #718096;
+            font-weight: 600;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.3s;
+        }
+        .tab-button:hover {
+            color: #4a5568;
+        }
+        .tab-button.active {
+            color: #667eea;
+        }
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* ヒートマップ */
+        .heatmap-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        .heatmap-table th,
+        .heatmap-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            font-size: 0.85em;
+        }
+        .heatmap-cell {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .heatmap-cell:hover {
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .heat-level-0 { background: #f7fafc; }
+        .heat-level-1 { background: #bee3f8; }
+        .heat-level-2 { background: #90cdf4; }
+        .heat-level-3 { background: #63b3ed; }
+        .heat-level-4 { background: #4299e1; }
+        .heat-level-5 { background: #3182ce; }
+        .heat-danger { background: #feb2b2; }
+        .heat-excellent { background: #9ae6b4; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎯 FX取引分析ツール Enhanced</h1>
+            <p>MT4/MT5の取引履歴から、勝ちパターンを発見する</p>
+        </header>
+
+        <div class="upload-section">
+            <h2>📁 取引履歴ファイルをアップロード</h2>
+            <div class="button-group">
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileInput" accept=".html,.htm" />
+                    <label for="fileInput">ファイルを選択</label>
+                </div>
+                <button class="demo-button" onclick="loadDemoData()">🎮 デモデータで試す</button>
+            </div>
+            <div id="fileName" style="margin-top: 15px; color: #718096;"></div>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>分析中...</p>
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+        </div>
+
+        <div id="analysisResults" style="display: none;">
+            <!-- サマリーカード -->
+            <div class="analysis-card">
+                <h3>📊 全体サマリー</h3>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-value" id="totalTrades">-</div>
+                        <div class="metric-label">総取引数</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="winRate">-</div>
+                        <div class="metric-label">勝率</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="profitFactor">-</div>
+                        <div class="metric-label">PF</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="expectedValue">-</div>
+                        <div class="metric-label">期待値</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-value" id="totalProfit">-</div>
+                        <div class="metric-label">総損益</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 通貨ペア別分析 -->
+            <div class="analysis-card">
+                <h3>🌍 通貨ペア別分析</h3>
+                <div class="tab-navigation">
+                    <button class="tab-button active" onclick="switchTab('symbol', 'overview')">概要</button>
+                    <button class="tab-button" onclick="switchTab('symbol', 'direction')">方向別(L/S)</button>
+                </div>
+                <div class="tab-content active" id="symbol-overview">
+                    <table class="data-table" id="symbolTable">
+                        <thead>
+                            <tr>
+                                <th>通貨ペア</th>
+                                <th>取引数</th>
+                                <th>勝率</th>
+                                <th>PF</th>
+                                <th>期待値</th>
+                                <th>総損益</th>
+                                <th>状態</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div class="chart-container">
+                        <canvas id="symbolChart"></canvas>
+                    </div>
+                </div>
+                <div class="tab-content" id="symbol-direction">
+                    <div id="symbolDirectionContent"></div>
+                </div>
+            </div>
+
+            <!-- 曜日別分析 -->
+            <div class="analysis-card">
+                <h3>📅 曜日別分析</h3>
+                <div class="tab-navigation">
+                    <button class="tab-button active" onclick="switchTab('weekday', 'overview')">概要</button>
+                    <button class="tab-button" onclick="switchTab('weekday', 'heatmap')">時間帯ヒートマップ</button>
+                </div>
+                <div class="tab-content active" id="weekday-overview">
+                    <table class="data-table" id="weekdayTable">
+                        <thead>
+                            <tr>
+                                <th>曜日</th>
+                                <th>取引数</th>
+                                <th>勝率</th>
+                                <th>PF</th>
+                                <th>期待値</th>
+                                <th>総損益</th>
+                                <th>状態</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div class="chart-container">
+                        <canvas id="weekdayChart"></canvas>
+                    </div>
+                </div>
+                <div class="tab-content" id="weekday-heatmap">
+                    <div class="heatmap-container">
+                        <table class="heatmap-table" id="weekdayHeatmap">
+                            <!-- ヒートマップがここに生成される -->
+                        </table>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <p style="color: #718096; font-size: 0.9em;">
+                            🟢 優秀 (PF≥1.5) | 🔵 良好 (PF≥1.2) | ⚪ 普通 (PF≥1.0) | 🔴 要注意 (PF<1.0)
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 時間帯別分析 -->
+            <div class="analysis-card">
+                <h3>🕐 時間帯別分析</h3>
+                <div class="tab-navigation">
+                    <button class="tab-button active" onclick="switchTab('time', 'overview')">概要</button>
+                    <button class="tab-button" onclick="switchTab('time', 'efficiency')">時給ランキング</button>
+                </div>
+                <div class="tab-content active" id="time-overview">
+                    <table class="data-table" id="timeTable">
+                        <thead>
+                            <tr>
+                                <th>時間帯</th>
+                                <th>取引数</th>
+                                <th>勝率</th>
+                                <th>PF</th>
+                                <th>期待値</th>
+                                <th>総損益</th>
+                                <th>市場</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                    <div class="chart-container">
+                        <canvas id="timeChart"></canvas>
+                    </div>
+                </div>
+                <div class="tab-content" id="time-efficiency">
+                    <div id="timeEfficiencyContent"></div>
+                    <div class="chart-container">
+                        <canvas id="efficiencyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 保有時間モード別分析 -->
+            <div class="analysis-card">
+                <h3>⏳ 保有時間モード別分析</h3>
+                <table class="data-table" id="modeTable">
+                    <thead>
+                        <tr>
+                            <th>モード</th>
+                            <th>時間範囲</th>
+                            <th>取引数</th>
+                            <th>勝率</th>
+                            <th>PF</th>
+                            <th>期待値</th>
+                            <th>総損益</th>
+                            <th>評価</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <div class="chart-container">
+                    <canvas id="modeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        // グローバル変数
+        let allTrades = [];
+        let charts = {};
+
+        // DOM要素
+        const fileInput = document.getElementById('fileInput');
+        const fileNameEl = document.getElementById('fileName');
+        const loadingEl = document.getElementById('loading');
+        const errorEl = document.getElementById('errorMessage');
+        const resultsEl = document.getElementById('analysisResults');
+
+        // イベントリスナー
+        fileInput.addEventListener('change', handleFileUpload);
+
+        // デモデータ生成
+        function generateDemoData() {
+            const symbols = ['USDJPY', 'EURUSD', 'GBPUSD', 'AUDUSD', 'EURJPY'];
+            const directions = ['LONG', 'SHORT'];
+            const trades = [];
+            
+            // 3ヶ月分のデータを生成
+            const startDate = new Date('2024-10-01');
+            const endDate = new Date('2024-12-31');
+            
+            for (let i = 0; i < 200; i++) {
+                const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+                const direction = directions[Math.floor(Math.random() * directions.length)];
+                
+                // ランダムな日時を生成
+                const openTime = new Date(startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime()));
+                
+                // 保有時間を生成（5分〜48時間）
+                const duration = (5 + Math.random() * 2875) * 60 * 1000; // ミリ秒
+                const closeTime = new Date(openTime.getTime() + duration);
+                
+                // 勝率を調整（特定の条件で勝ちやすくする）
+                let winProbability = 0.5;
+                
+                // 火曜日と水曜日は勝ちやすい
+                if (openTime.getDay() === 2 || openTime.getDay() === 3) {
+                    winProbability += 0.1;
+                }
+                
+                // 16-21時（ロンドン/NY時間）は勝ちやすい
+                const hour = openTime.getHours();
+                if (hour >= 16 && hour <= 21) {
+                    winProbability += 0.15;
+                }
+                
+                // USDJPYとEURUSDは勝ちやすい
+                if (symbol === 'USDJPY' || symbol === 'EURUSD') {
+                    winProbability += 0.1;
+                }
+                
+                // LONGの方が少し勝ちやすい
+                if (direction === 'LONG') {
+                    winProbability += 0.05;
+                }
+                
+                const isWin = Math.random() < winProbability;
+                
+                // 利益/損失を生成
+                let profit;
+                if (isWin) {
+                    profit = 500 + Math.random() * 4500; // 500〜5000円の利益
+                } else {
+                    profit = -(300 + Math.random() * 3700); // -300〜-4000円の損失
+                }
+                
+                trades.push({
+                    ticket: `${100000 + i}`,
+                    openTime,
+                    closeTime,
+                    type: direction.toLowerCase(),
+                    direction,
+                    size: 0.1,
+                    symbol,
+                    openPrice: 100 + Math.random() * 50,
+                    closePrice: 100 + Math.random() * 50,
+                    profit,
+                    isWin,
+                    duration
+                });
+            }
+            
+            return trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
+        }
+
+        // デモデータ読み込み
+        function loadDemoData() {
+            fileNameEl.textContent = 'デモデータを使用中';
+            setLoading(true);
+            
+            setTimeout(() => {
+                allTrades = generateDemoData();
+                performAnalysis();
+                setLoading(false);
+            }, 500);
+        }
+
+        // ファイルアップロード処理
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileNameEl.textContent = `選択: ${file.name}`;
+            setLoading(true);
+            
+            const reader = new FileReader();
+            reader.onload = (e) => parseMT4History(e.target.result);
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // MT4/MT5履歴パース
+        function parseMT4History(htmlContent) {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlContent, 'text/html');
+                const tables = doc.querySelectorAll('table');
+                
+                let trades = [];
+                tables.forEach(table => {
+                    trades = trades.concat(parseTableData(table));
+                });
+                
+                if (trades.length > 0) {
+                    allTrades = trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
+                    performAnalysis();
+                } else {
+                    showError('取引データが見つかりませんでした。');
+                }
+            } catch (error) {
+                console.error('Parse error:', error);
+                showError('ファイルの解析中にエラーが発生しました。');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // テーブルデータのパース（MT4/MT5対応版）
+        function parseTableData(table) {
+            const rows = table.querySelectorAll('tr');
+            const trades = [];
+            let headerMapping = {};
+            let dataStartIndex = -1;
+            
+            // デバッグ用ログ
+            console.log('テーブル行数:', rows.length);
+            
+            // ヘッダー行の検出（より柔軟に）
+            for (let i = 0; i < Math.min(20, rows.length); i++) {
+                const cells = rows[i].querySelectorAll('td, th');
+                if (cells.length < 5) continue;
+                
+                const cellTexts = Array.from(cells).map(cell => cell.textContent.trim());
+                const cellTextsLower = cellTexts.map(text => text.toLowerCase());
+                
+                // MT4/MT5のヘッダーパターンを検出
+                const hasTicket = cellTextsLower.some(text => text.includes('ticket') || text === '#');
+                const hasTime = cellTextsLower.some(text => text.includes('time') || text.includes('open'));
+                const hasType = cellTextsLower.some(text => text.includes('type') || text.includes('買') || text.includes('売'));
+                
+                if (hasTicket || hasTime || hasType) {
+                    console.log('ヘッダー候補行:', i, cellTexts);
+                    
+                    // ヘッダーマッピング作成
+                    cellTextsLower.forEach((text, idx) => {
+                        // Ticket/番号
+                        if (text.includes('ticket') || text === '#' || text.includes('番号')) {
+                            headerMapping.ticket = idx;
+                        }
+                        // Open Time
+                        if (text.includes('open') && text.includes('time')) {
+                            headerMapping.openTime = idx;
+                        } else if (text === 'open' && !headerMapping.openTime) {
+                            headerMapping.openTime = idx;
+                        }
+                        // Type
+                        if (text.includes('type') || text === 'type') {
+                            headerMapping.type = idx;
+                        }
+                        // Size/Volume/Lots
+                        if (text.includes('size') || text.includes('volume') || text.includes('lot')) {
+                            headerMapping.size = idx;
+                        }
+                        // Symbol/Item
+                        if (text.includes('symbol') || text.includes('item') || text === 'symbol') {
+                            headerMapping.symbol = idx;
+                        }
+                        // Price (Open)
+                        if (text.includes('price') && !text.includes('close') && !headerMapping.openPrice) {
+                            headerMapping.openPrice = idx;
+                        }
+                        // Close Time
+                        if (text.includes('close') && text.includes('time')) {
+                            headerMapping.closeTime = idx;
+                        } else if (text === 'close' && !headerMapping.closeTime) {
+                            headerMapping.closeTime = idx;
+                        }
+                        // Close Price
+                        if ((text.includes('price') && text.includes('close')) || 
+                            (text === 'price' && headerMapping.openPrice && idx > headerMapping.openPrice)) {
+                            headerMapping.closePrice = idx;
+                        }
+                        // Profit
+                        if (text.includes('profit') || text.includes('損益')) {
+                            headerMapping.profit = idx;
+                        }
+                    });
+                    
+                    // 最低限必要な列が見つかった場合
+                    if (Object.keys(headerMapping).length >= 5) {
+                        dataStartIndex = i + 1;
+                        console.log('ヘッダーマッピング:', headerMapping);
+                        break;
+                    }
+                }
+            }
+            
+            // ヘッダーが見つからない場合、位置ベースで推測
+            if (dataStartIndex === -1) {
+                console.log('標準ヘッダーが見つからないため、位置ベースで解析を試みます');
+                
+                // MT5の一般的な列順序で仮定
+                for (let i = 0; i < rows.length; i++) {
+                    const cells = rows[i].querySelectorAll('td');
+                    if (cells.length >= 10) {
+                        const firstCell = cells[0].textContent.trim();
+                        // 数字で始まる行を探す（チケット番号）
+                        if (/^\d{5,}$/.test(firstCell)) {
+                            dataStartIndex = i;
+                            // 一般的なMT5のレイアウト
+                            headerMapping = {
+                                ticket: 0,
+                                openTime: 1,
+                                type: 2,
+                                size: 3,
+                                symbol: 4,
+                                openPrice: 5,
+                                closeTime: 8,
+                                closePrice: 9,
+                                profit: cells.length - 1 // 最後の列が利益であることが多い
+                            };
+                            console.log('位置ベースのマッピング使用:', headerMapping);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (dataStartIndex === -1) {
+                console.log('データ開始行が見つかりません');
+                return [];
+            }
+            
+            // データ行のパース
+            for (let i = dataStartIndex; i < rows.length; i++) {
+                const cells = rows[i].querySelectorAll('td');
+                if (cells.length < 5) continue;
+                
+                const cellTexts = Array.from(cells).map(cell => cell.textContent.trim());
+                
+                // 空行やサマリー行をスキップ
+                if (cellTexts.every(text => text === '')) continue;
+                if (cellTexts.some(text => text.toLowerCase().includes('total') || text.toLowerCase().includes('合計'))) continue;
+                
+                // Type列の値を取得（大文字小文字を考慮）
+                const typeIndex = headerMapping.type !== undefined ? headerMapping.type : 2;
+                const type = (cellTexts[typeIndex] || '').toLowerCase().trim();
+                
+                // buy/sell または日本語の買/売をチェック
+                if (!['buy', 'sell', '買', '売'].includes(type)) {
+                    // typeが見つからない場合、他の列から推測
+                    const possibleType = cellTexts.find(text => {
+                        const lower = text.toLowerCase();
+                        return lower === 'buy' || lower === 'sell' || text === '買' || text === '売';
+                    });
+                    if (!possibleType) continue;
+                }
+                
+                // チケット番号の検証
+                const ticketIndex = headerMapping.ticket !== undefined ? headerMapping.ticket : 0;
+                const ticket = cellTexts[ticketIndex];
+                if (!/^\d+$/.test(ticket)) continue;
+                
+                // 利益の取得（複数の形式に対応）
+                const profitIndex = headerMapping.profit !== undefined ? headerMapping.profit : cellTexts.length - 1;
+                let profitText = cellTexts[profitIndex] || '0';
+                
+                // 通貨記号や空白を除去
+                profitText = profitText.replace(/[^\d\.\-,]/g, '');
+                profitText = profitText.replace(/,/g, '');
+                const profit = parseFloat(profitText);
+                
+                if (isNaN(profit)) {
+                    console.log('利益パース失敗:', cellTexts[profitIndex]);
+                    continue;
+                }
+                
+                // 日時のパース
+                const openTimeIndex = headerMapping.openTime !== undefined ? headerMapping.openTime : 1;
+                const closeTimeIndex = headerMapping.closeTime !== undefined ? headerMapping.closeTime : 8;
+                
+                const openTime = parseDateTime(cellTexts[openTimeIndex]);
+                const closeTime = parseDateTime(cellTexts[closeTimeIndex]);
+                
+                if (!openTime || !closeTime) {
+                    console.log('日時パース失敗:', cellTexts[openTimeIndex], cellTexts[closeTimeIndex]);
+                    continue;
+                }
+                
+                // シンボルの取得
+                const symbolIndex = headerMapping.symbol !== undefined ? headerMapping.symbol : 4;
+                const symbol = cellTexts[symbolIndex] || 'UNKNOWN';
+                
+                // サイズの取得
+                const sizeIndex = headerMapping.size !== undefined ? headerMapping.size : 3;
+                const size = parseFloat(cellTexts[sizeIndex] || '0.01');
+                
+                // 価格の取得
+                const openPriceIndex = headerMapping.openPrice !== undefined ? headerMapping.openPrice : 5;
+                const closePriceIndex = headerMapping.closePrice !== undefined ? headerMapping.closePrice : 9;
+                const openPrice = parseFloat(cellTexts[openPriceIndex] || '0');
+                const closePrice = parseFloat(cellTexts[closePriceIndex] || '0');
+                
+                // 方向の判定
+                const direction = (type === 'buy' || type === '買') ? 'LONG' : 'SHORT';
+                
+                trades.push({
+                    ticket,
+                    openTime,
+                    closeTime,
+                    type: type === '買' ? 'buy' : type === '売' ? 'sell' : type,
+                    direction,
+                    size,
+                    symbol,
+                    openPrice,
+                    closePrice,
+                    profit,
+                    isWin: profit > 0,
+                    duration: closeTime.getTime() - openTime.getTime()
+                });
+            }
+            
+            console.log('パース完了: 取引数 =', trades.length);
+            return trades;
+        }
+
+        // 日時パース
+        function parseDateTime(dateStr) {
+            if (!dateStr) return null;
+            const match = dateStr.match(/(\d{4})[./](\d{2})[./](\d{2})\s+(\d{2}):(\d{2})/);
+            if (match) {
+                const [, year, month, day, hour, minute] = match.map(Number);
+                const d = new Date(year, month - 1, day, hour, minute);
+                if (!isNaN(d.getTime())) return d;
+            }
+            return null;
+        }
+
+        // 分析実行
+        function performAnalysis() {
+            // サマリー計算
+            updateSummary();
+            
+            // 通貨ペア別分析
+            analyzeBySymbol();
+            
+            // 曜日別分析
+            analyzeByWeekday();
+            
+            // 時間帯別分析
+            analyzeByTime();
+            
+            // 保有時間モード別分析
+            analyzeByMode();
+            
+            // 結果表示
+            resultsEl.style.display = 'block';
+        }
+
+        // サマリー更新
+        function updateSummary() {
+            const stats = calculateStats(allTrades);
+            
+            document.getElementById('totalTrades').textContent = stats.totalTrades;
+            document.getElementById('winRate').textContent = `${stats.winRate.toFixed(1)}%`;
+            document.getElementById('winRate').className = `metric-value ${stats.winRate >= 55 ? 'positive' : stats.winRate >= 45 ? 'neutral' : 'negative'}`;
+            
+            document.getElementById('profitFactor').textContent = stats.profitFactor.toFixed(2);
+            document.getElementById('profitFactor').className = `metric-value ${stats.profitFactor >= 1.5 ? 'positive' : stats.profitFactor >= 1.0 ? 'neutral' : 'negative'}`;
+            
+            document.getElementById('expectedValue').textContent = `¥${Math.round(stats.expectedValue).toLocaleString()}`;
+            document.getElementById('expectedValue').className = `metric-value ${stats.expectedValue > 0 ? 'positive' : 'negative'}`;
+            
+            document.getElementById('totalProfit').textContent = `¥${Math.round(stats.totalProfit).toLocaleString()}`;
+            document.getElementById('totalProfit').className = `metric-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}`;
+        }
+
+        // 統計計算
+        function calculateStats(trades) {
+            if (!trades || trades.length === 0) {
+                return {
+                    totalTrades: 0,
+                    winRate: 0,
+                    profitFactor: 0,
+                    expectedValue: 0,
+                    totalProfit: 0,
+                    totalWin: 0,
+                    totalLoss: 0,
+                    wins: 0,
+                    losses: 0
+                };
+            }
+            
+            const wins = trades.filter(t => t.isWin);
+            const losses = trades.filter(t => !t.isWin);
+            const totalWin = wins.reduce((sum, t) => sum + t.profit, 0);
+            const totalLoss = Math.abs(losses.reduce((sum, t) => sum + t.profit, 0));
+            const totalProfit = totalWin - totalLoss;
+            
+            return {
+                totalTrades: trades.length,
+                winRate: trades.length > 0 ? (wins.length / trades.length) * 100 : 0,
+                profitFactor: totalLoss > 0 ? totalWin / totalLoss : (totalWin > 0 ? 999 : 0),
+                expectedValue: trades.length > 0 ? totalProfit / trades.length : 0,
+                totalProfit,
+                totalWin,
+                totalLoss,
+                wins: wins.length,
+                losses: losses.length
+            };
+        }
+
+        // 通貨ペア別分析
+        function analyzeBySymbol() {
+            const symbolStats = {};
+            
+            // 基本統計
+            allTrades.forEach(trade => {
+                if (!symbolStats[trade.symbol]) {
+                    symbolStats[trade.symbol] = {
+                        trades: [],
+                        longTrades: [],
+                        shortTrades: []
+                    };
+                }
+                symbolStats[trade.symbol].trades.push(trade);
+                if (trade.direction === 'LONG') {
+                    symbolStats[trade.symbol].longTrades.push(trade);
+                } else {
+                    symbolStats[trade.symbol].shortTrades.push(trade);
+                }
+            });
+            
+            // テーブル更新
+            const tbody = document.querySelector('#symbolTable tbody');
+            tbody.innerHTML = '';
+            
+            const chartLabels = [];
+            const chartData = [];
+            const chartColors = [];
+            
+            Object.entries(symbolStats).forEach(([symbol, data]) => {
+                const stats = calculateStats(data.trades);
+                
+                // 状態判定
+                let badge = '';
+                if (stats.profitFactor >= 1.5) badge = '<span class="performance-badge badge-excellent">優秀</span>';
+                else if (stats.profitFactor >= 1.2) badge = '<span class="performance-badge badge-good">良好</span>';
+                else if (stats.profitFactor >= 1.0) badge = '<span class="performance-badge badge-warning">普通</span>';
+                else badge = '<span class="performance-badge badge-danger">要改善</span>';
+                
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${symbol}</strong></td>
+                    <td>${stats.totalTrades}</td>
+                    <td class="${stats.winRate >= 55 ? 'positive' : stats.winRate >= 45 ? '' : 'negative'}">${stats.winRate.toFixed(1)}%</td>
+                    <td class="${stats.profitFactor >= 1.5 ? 'positive' : stats.profitFactor >= 1.0 ? '' : 'negative'}">${stats.profitFactor.toFixed(2)}</td>
+                    <td class="${stats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(stats.expectedValue).toLocaleString()}</td>
+                    <td class="${stats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(stats.totalProfit).toLocaleString()}</td>
+                    <td>${badge}</td>
+                `;
+                
+                // チャートデータ
+                chartLabels.push(symbol);
+                chartData.push(stats.profitFactor);
+                chartColors.push(stats.profitFactor >= 1.5 ? '#48bb78' : stats.profitFactor >= 1.0 ? '#4299e1' : '#f56565');
+            });
+            
+            // チャート作成
+            createChart('symbolChart', {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'プロフィットファクター',
+                        data: chartData,
+                        backgroundColor: chartColors
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'PF' }
+                        }
+                    }
+                }
+            });
+            
+            // 方向別分析の作成
+            createDirectionAnalysis(symbolStats);
+        }
+
+        // 方向別分析作成
+        function createDirectionAnalysis(symbolStats) {
+            const container = document.getElementById('symbolDirectionContent');
+            let html = '<table class="data-table"><thead><tr><th>通貨ペア</th><th>方向</th><th>取引数</th><th>勝率</th><th>PF</th><th>期待値</th><th>総損益</th></tr></thead><tbody>';
+            
+            Object.entries(symbolStats).forEach(([symbol, data]) => {
+                const longStats = calculateStats(data.longTrades);
+                const shortStats = calculateStats(data.shortTrades);
+                
+                // LONG
+                html += `<tr>
+                    <td rowspan="2"><strong>${symbol}</strong></td>
+                    <td><span style="color: #48bb78;">▲ LONG</span></td>
+                    <td>${longStats.totalTrades}</td>
+                    <td class="${longStats.winRate >= 55 ? 'positive' : ''}">${longStats.winRate.toFixed(1)}%</td>
+                    <td class="${longStats.profitFactor >= 1.5 ? 'positive' : ''}">${longStats.profitFactor.toFixed(2)}</td>
+                    <td class="${longStats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(longStats.expectedValue).toLocaleString()}</td>
+                    <td class="${longStats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(longStats.totalProfit).toLocaleString()}</td>
+                </tr>`;
+                
+                // SHORT
+                html += `<tr>
+                    <td><span style="color: #f56565;">▼ SHORT</span></td>
+                    <td>${shortStats.totalTrades}</td>
+                    <td class="${shortStats.winRate >= 55 ? 'positive' : ''}">${shortStats.winRate.toFixed(1)}%</td>
+                    <td class="${shortStats.profitFactor >= 1.5 ? 'positive' : ''}">${shortStats.profitFactor.toFixed(2)}</td>
+                    <td class="${shortStats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(shortStats.expectedValue).toLocaleString()}</td>
+                    <td class="${shortStats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(shortStats.totalProfit).toLocaleString()}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+
+        // 曜日別分析
+        function analyzeByWeekday() {
+            const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
+            const weekdayStats = {};
+            
+            // 初期化
+            weekdays.forEach((day, index) => {
+                weekdayStats[index] = {
+                    name: day,
+                    trades: [],
+                    hourlyData: {}
+                };
+                // 24時間分の初期化
+                for (let h = 0; h < 24; h++) {
+                    weekdayStats[index].hourlyData[h] = [];
+                }
+            });
+            
+            // データ振り分け
+            allTrades.forEach(trade => {
+                const weekday = trade.openTime.getDay();
+                const hour = trade.openTime.getHours();
+                weekdayStats[weekday].trades.push(trade);
+                weekdayStats[weekday].hourlyData[hour].push(trade);
+            });
+            
+            // テーブル更新
+            const tbody = document.querySelector('#weekdayTable tbody');
+            tbody.innerHTML = '';
+            
+            const chartLabels = [];
+            const chartData = [];
+            
+            weekdays.forEach((day, index) => {
+                const stats = calculateStats(weekdayStats[index].trades);
+                
+                let badge = '';
+                if (stats.profitFactor >= 1.5) badge = '<span class="performance-badge badge-excellent">優秀</span>';
+                else if (stats.profitFactor >= 1.2) badge = '<span class="performance-badge badge-good">良好</span>';
+                else if (stats.profitFactor >= 1.0) badge = '<span class="performance-badge badge-warning">普通</span>';
+                else badge = '<span class="performance-badge badge-danger">要改善</span>';
+                
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${day}曜日</strong></td>
+                    <td>${stats.totalTrades}</td>
+                    <td class="${stats.winRate >= 55 ? 'positive' : ''}">${stats.winRate.toFixed(1)}%</td>
+                    <td class="${stats.profitFactor >= 1.5 ? 'positive' : ''}">${stats.profitFactor.toFixed(2)}</td>
+                    <td class="${stats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(stats.expectedValue).toLocaleString()}</td>
+                    <td class="${stats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(stats.totalProfit).toLocaleString()}</td>
+                    <td>${badge}</td>
+                `;
+                
+                chartLabels.push(day);
+                chartData.push(stats.totalProfit);
+            });
+            
+            // チャート作成
+            createChart('weekdayChart', {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: '総損益',
+                        data: chartData,
+                        backgroundColor: chartData.map(v => v >= 0 ? '#48bb78' : '#f56565')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: { display: true, text: '損益 (¥)' }
+                        }
+                    }
+                }
+            });
+            
+            // ヒートマップ作成
+            createWeekdayHeatmap(weekdayStats);
+        }
+
+        // 曜日×時間帯ヒートマップ作成
+        function createWeekdayHeatmap(weekdayStats) {
+            const table = document.getElementById('weekdayHeatmap');
+            
+            // ヘッダー行
+            let html = '<thead><tr><th>時間/曜日</th>';
+            ['日', '月', '火', '水', '木', '金', '土'].forEach(day => {
+                html += `<th>${day}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            // 各時間行
+            for (let hour = 0; hour < 24; hour++) {
+                html += `<tr><td><strong>${hour}:00</strong></td>`;
+                
+                for (let day = 0; day < 7; day++) {
+                    const trades = weekdayStats[day].hourlyData[hour];
+                    const stats = calculateStats(trades);
+                    
+                    let cellClass = 'heatmap-cell ';
+                    let content = '-';
+                    
+                    if (trades.length > 0) {
+                        if (stats.profitFactor >= 1.5) {
+                            cellClass += 'heat-excellent';
+                            content = `<strong>${stats.profitFactor.toFixed(1)}</strong><br><small>${trades.length}件</small>`;
+                        } else if (stats.profitFactor >= 1.2) {
+                            cellClass += 'heat-level-4';
+                            content = `${stats.profitFactor.toFixed(1)}<br><small>${trades.length}件</small>`;
+                        } else if (stats.profitFactor >= 1.0) {
+                            cellClass += 'heat-level-2';
+                            content = `${stats.profitFactor.toFixed(1)}<br><small>${trades.length}件</small>`;
+                        } else {
+                            cellClass += 'heat-danger';
+                            content = `${stats.profitFactor.toFixed(1)}<br><small>${trades.length}件</small>`;
+                        }
+                    } else {
+                        cellClass += 'heat-level-0';
+                    }
+                    
+                    html += `<td class="${cellClass}">${content}</td>`;
+                }
+                html += '</tr>';
+            }
+            
+            html += '</tbody>';
+            table.innerHTML = html;
+        }
+
+        // 時間帯別分析
+        function analyzeByTime() {
+            const timeStats = {};
+            
+            // 24時間分の初期化
+            for (let h = 0; h < 24; h++) {
+                timeStats[h] = {
+                    trades: [],
+                    totalDuration: 0
+                };
+            }
+            
+            // データ振り分け
+            allTrades.forEach(trade => {
+                const hour = trade.openTime.getHours();
+                timeStats[hour].trades.push(trade);
+                timeStats[hour].totalDuration += trade.duration;
+            });
+            
+            // テーブル更新
+            const tbody = document.querySelector('#timeTable tbody');
+            tbody.innerHTML = '';
+            
+            const chartLabels = [];
+            const chartData = [];
+            const efficiencyData = [];
+            
+            for (let hour = 0; hour < 24; hour++) {
+                const stats = calculateStats(timeStats[hour].trades);
+                const avgDurationHours = timeStats[hour].trades.length > 0 
+                    ? (timeStats[hour].totalDuration / timeStats[hour].trades.length) / (1000 * 60 * 60)
+                    : 0;
+                const hourlyRate = avgDurationHours > 0 ? stats.totalProfit / (avgDurationHours * timeStats[hour].trades.length) : 0;
+                
+                // 市場セッション判定
+                let session = '';
+                if (hour >= 7 && hour < 16) session = '東京';
+                else if (hour >= 16 && hour < 1) session = 'ロンドン/NY';
+                else session = 'オセアニア';
+                
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${hour}:00-${hour + 1}:00</strong></td>
+                    <td>${stats.totalTrades}</td>
+                    <td class="${stats.winRate >= 55 ? 'positive' : ''}">${stats.winRate.toFixed(1)}%</td>
+                    <td class="${stats.profitFactor >= 1.5 ? 'positive' : ''}">${stats.profitFactor.toFixed(2)}</td>
+                    <td class="${stats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(stats.expectedValue).toLocaleString()}</td>
+                    <td class="${stats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(stats.totalProfit).toLocaleString()}</td>
+                    <td>${session}</td>
+                `;
+                
+                chartLabels.push(`${hour}時`);
+                chartData.push(stats.totalProfit);
+                efficiencyData.push({
+                    hour,
+                    hourlyRate,
+                    trades: stats.totalTrades,
+                    profit: stats.totalProfit
+                });
+            }
+            
+            // 基本チャート作成
+            createChart('timeChart', {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: '総損益',
+                        data: chartData,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: { display: true, text: '損益 (¥)' }
+                        }
+                    }
+                }
+            });
+            
+            // 時給ランキング作成
+            createTimeEfficiencyRanking(efficiencyData);
+        }
+
+        // 時給ランキング作成
+        function createTimeEfficiencyRanking(efficiencyData) {
+            const container = document.getElementById('timeEfficiencyContent');
+            
+            // 時給でソート
+            const sorted = efficiencyData
+                .filter(d => d.trades > 0)
+                .sort((a, b) => b.hourlyRate - a.hourlyRate);
+            
+            let html = '<table class="data-table"><thead><tr><th>順位</th><th>時間帯</th><th>時給</th><th>取引数</th><th>総損益</th></tr></thead><tbody>';
+            
+            sorted.forEach((data, index) => {
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}位`;
+                html += `<tr>
+                    <td><strong>${medal}</strong></td>
+                    <td>${data.hour}:00-${data.hour + 1}:00</td>
+                    <td class="${data.hourlyRate > 0 ? 'positive' : 'negative'}">¥${Math.round(data.hourlyRate).toLocaleString()}/h</td>
+                    <td>${data.trades}</td>
+                    <td class="${data.profit >= 0 ? 'positive' : 'negative'}">¥${Math.round(data.profit).toLocaleString()}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            
+            // 時給チャート
+            createChart('efficiencyChart', {
+                type: 'bar',
+                data: {
+                    labels: sorted.slice(0, 10).map(d => `${d.hour}時`),
+                    datasets: [{
+                        label: '時給',
+                        data: sorted.slice(0, 10).map(d => d.hourlyRate),
+                        backgroundColor: sorted.slice(0, 10).map(d => d.hourlyRate > 0 ? '#48bb78' : '#f56565')
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            title: { display: true, text: '時給 (¥/h)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 保有時間モード別分析
+        function analyzeByMode() {
+            const modes = [
+                { name: 'スキャルピング', range: '< 1時間', min: 0, max: 60 },
+                { name: 'デイトレード', range: '1-4時間', min: 60, max: 240 },
+                { name: 'スイングトレード', range: '4-24時間', min: 240, max: 1440 },
+                { name: 'ポジショントレード', range: '> 24時間', min: 1440, max: Infinity }
+            ];
+            
+            const tbody = document.querySelector('#modeTable tbody');
+            tbody.innerHTML = '';
+            
+            const chartLabels = [];
+            const pfData = [];
+            const evData = [];
+            
+            modes.forEach(mode => {
+                const trades = allTrades.filter(t => {
+                    const minutes = t.duration / (1000 * 60);
+                    return minutes >= mode.min && minutes < mode.max;
+                });
+                
+                const stats = calculateStats(trades);
+                
+                let badge = '';
+                if (stats.profitFactor >= 1.5) badge = '⭐優秀';
+                else if (stats.profitFactor >= 1.2) badge = '👍良好';
+                else if (stats.profitFactor >= 1.0) badge = '📊普通';
+                else badge = '⚠️要改善';
+                
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><strong>${mode.name}</strong></td>
+                    <td>${mode.range}</td>
+                    <td>${stats.totalTrades}</td>
+                    <td class="${stats.winRate >= 55 ? 'positive' : ''}">${stats.winRate.toFixed(1)}%</td>
+                    <td class="${stats.profitFactor >= 1.5 ? 'positive' : ''}">${stats.profitFactor.toFixed(2)}</td>
+                    <td class="${stats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(stats.expectedValue).toLocaleString()}</td>
+                    <td class="${stats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(stats.totalProfit).toLocaleString()}</td>
+                    <td>${badge}</td>
+                `;
+                
+                chartLabels.push(mode.name);
+                pfData.push(stats.profitFactor);
+                evData.push(stats.expectedValue);
+            });
+            
+            // チャート作成
+            createChart('modeChart', {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [
+                        {
+                            label: 'PF',
+                            data: pfData,
+                            backgroundColor: '#667eea',
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '期待値',
+                            data: evData,
+                            type: 'line',
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'transparent',
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'PF' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: '期待値 (¥)' },
+                            grid: { drawOnChartArea: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        // チャート作成ヘルパー
+        function createChart(canvasId, config) {
+            const ctx = document.getElementById(canvasId)?.getContext('2d');
+            if (!ctx) return;
+            
+            // 既存のチャート破棄
+            if (charts[canvasId]) {
+                charts[canvasId].destroy();
+            }
+            
+            // 新規チャート作成
+            charts[canvasId] = new Chart(ctx, config);
+        }
+
+        // タブ切り替え
+        function switchTab(section, tab) {
+            // ボタンのアクティブ状態切り替え
+            const buttons = document.querySelectorAll(`button[onclick*="switchTab('${section}'"]`);
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.onclick.toString().includes(tab)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // コンテンツの表示切り替え
+            document.querySelectorAll(`[id^="${section}-"]`).forEach(el => {
+                el.classList.remove('active');
+            });
+            const targetEl = document.getElementById(`${section}-${tab}`);
+            if (targetEl) {
+                targetEl.classList.add('active');
+            }
+        }
+
+        // ローディング表示
+        function setLoading(isLoading) {
+            loadingEl.style.display = isLoading ? 'block' : 'none';
+        }
+
+        // エラー表示
+        function showError(message) {
+            errorEl.style.display = 'block';
+            errorEl.textContent = message;
+            setTimeout(() => {
+                errorEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // グローバル関数として公開
+        window.switchTab = switchTab;
+        window.loadDemoData = loadDemoData;
+    </script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -206,43 +205,75 @@
             display: none;
         }
         
-        /* タブナビゲーション */
+        /* タブナビゲーション（改良版） */
         .tab-navigation {
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
-            border-bottom: 2px solid #e2e8f0;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.06);
         }
         .tab-button {
-            padding: 10px 20px;
-            background: none;
-            border: none;
+            padding: 12px 24px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
             color: #718096;
             font-weight: 600;
             cursor: pointer;
             position: relative;
-            transition: color 0.3s;
+            transition: all 0.3s;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .tab-button:hover {
             color: #4a5568;
+            background: #f7fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         .tab-button.active {
-            color: #667eea;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
         }
         .tab-button.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: #667eea;
+            display: none;
+        }
+        .tab-button .tab-icon {
+            font-size: 1.2em;
+        }
+        .tab-button .tab-badge {
+            background: #ef4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-left: 8px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
         .tab-content {
             display: none;
+            animation: fadeIn 0.3s;
         }
         .tab-content.active {
             display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         /* ヒートマップ */
@@ -338,8 +369,15 @@
             <div class="analysis-card">
                 <h3>🌍 通貨ペア別分析</h3>
                 <div class="tab-navigation">
-                    <button class="tab-button active" onclick="switchTab('symbol', 'overview')">概要</button>
-                    <button class="tab-button" onclick="switchTab('symbol', 'direction')">方向別(L/S)</button>
+                    <button class="tab-button active" onclick="switchTab('symbol', 'overview')">
+                        <span class="tab-icon">📊</span>
+                        <span>概要</span>
+                    </button>
+                    <button class="tab-button" onclick="switchTab('symbol', 'direction')">
+                        <span class="tab-icon">🎯</span>
+                        <span>方向別(L/S)分析</span>
+                        <span class="tab-badge">NEW</span>
+                    </button>
                 </div>
                 <div class="tab-content active" id="symbol-overview">
                     <table class="data-table" id="symbolTable">
@@ -369,8 +407,15 @@
             <div class="analysis-card">
                 <h3>📅 曜日別分析</h3>
                 <div class="tab-navigation">
-                    <button class="tab-button active" onclick="switchTab('weekday', 'overview')">概要</button>
-                    <button class="tab-button" onclick="switchTab('weekday', 'heatmap')">時間帯ヒートマップ</button>
+                    <button class="tab-button active" onclick="switchTab('weekday', 'overview')">
+                        <span class="tab-icon">📊</span>
+                        <span>概要</span>
+                    </button>
+                    <button class="tab-button" onclick="switchTab('weekday', 'heatmap')">
+                        <span class="tab-icon">🔥</span>
+                        <span>時間帯ヒートマップ</span>
+                        <span class="tab-badge">HOT</span>
+                    </button>
                 </div>
                 <div class="tab-content active" id="weekday-overview">
                     <table class="data-table" id="weekdayTable">
@@ -409,8 +454,15 @@
             <div class="analysis-card">
                 <h3>🕐 時間帯別分析</h3>
                 <div class="tab-navigation">
-                    <button class="tab-button active" onclick="switchTab('time', 'overview')">概要</button>
-                    <button class="tab-button" onclick="switchTab('time', 'efficiency')">時給ランキング</button>
+                    <button class="tab-button active" onclick="switchTab('time', 'overview')">
+                        <span class="tab-icon">📊</span>
+                        <span>概要</span>
+                    </button>
+                    <button class="tab-button" onclick="switchTab('time', 'efficiency')">
+                        <span class="tab-icon">💰</span>
+                        <span>時給ランキング</span>
+                        <span class="tab-badge">¥</span>
+                    </button>
                 </div>
                 <div class="tab-content active" id="time-overview">
                     <table class="data-table" id="timeTable">
@@ -579,33 +631,54 @@
             reader.readAsText(file, 'UTF-8');
         }
 
-        // MT4/MT5履歴パース
+        // MT4/MT5履歴パース（改良版）
         function parseMT4History(htmlContent) {
             try {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(htmlContent, 'text/html');
                 const tables = doc.querySelectorAll('table');
                 
+                console.log('テーブル数:', tables.length);
+                
                 let trades = [];
-                tables.forEach(table => {
-                    trades = trades.concat(parseTableData(table));
+                
+                // すべてのテーブルを試す
+                tables.forEach((table, index) => {
+                    console.log(`テーブル${index + 1}を解析中...`);
+                    const tableTrades = parseTableData(table);
+                    if (tableTrades.length > 0) {
+                        console.log(`テーブル${index + 1}から${tableTrades.length}件の取引を発見`);
+                        trades = trades.concat(tableTrades);
+                    }
                 });
                 
-                if (trades.length > 0) {
-                    allTrades = trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
+                // 重複を除去（同じチケット番号）
+                const uniqueTrades = [];
+                const seenTickets = new Set();
+                trades.forEach(trade => {
+                    if (!seenTickets.has(trade.ticket)) {
+                        seenTickets.add(trade.ticket);
+                        uniqueTrades.push(trade);
+                    }
+                });
+                
+                console.log('総取引数（重複除去後）:', uniqueTrades.length);
+                
+                if (uniqueTrades.length > 0) {
+                    allTrades = uniqueTrades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
                     performAnalysis();
                 } else {
-                    showError('取引データが見つかりませんでした。');
+                    showError('取引データが見つかりませんでした。MT4/MT5の「口座履歴」タブから「レポートの保存」でHTMLファイルを出力してください。');
                 }
             } catch (error) {
                 console.error('Parse error:', error);
-                showError('ファイルの解析中にエラーが発生しました。');
+                showError('ファイルの解析中にエラーが発生しました: ' + error.message);
             } finally {
                 setLoading(false);
             }
         }
 
-        // テーブルデータのパース（MT4/MT5対応版）
+        // テーブルデータのパース（MT4/MT5対応版 - 改良）
         function parseTableData(table) {
             const rows = table.querySelectorAll('tr');
             const trades = [];
@@ -622,6 +695,11 @@
                 
                 const cellTexts = Array.from(cells).map(cell => cell.textContent.trim());
                 const cellTextsLower = cellTexts.map(text => text.toLowerCase());
+                
+                // デバッグ: 最初の数行を表示
+                if (i < 3) {
+                    console.log(`行${i}:`, cellTexts);
+                }
                 
                 // MT4/MT5のヘッダーパターンを検出
                 const hasTicket = cellTextsLower.some(text => text.includes('ticket') || text === '#');
@@ -651,13 +729,21 @@
                         if (text.includes('size') || text.includes('volume') || text.includes('lot')) {
                             headerMapping.size = idx;
                         }
-                        // Symbol/Item
-                        if (text.includes('symbol') || text.includes('item') || text === 'symbol') {
+                        // Symbol/Item - より柔軟に
+                        if (text.includes('symbol') || text.includes('item') || text === 'symbol' || text === 'item') {
                             headerMapping.symbol = idx;
                         }
                         // Price (Open)
                         if (text.includes('price') && !text.includes('close') && !headerMapping.openPrice) {
                             headerMapping.openPrice = idx;
+                        }
+                        // S/L (Stop Loss)
+                        if (text === 's / l' || text.includes('s/l') || text.includes('stop')) {
+                            headerMapping.sl = idx;
+                        }
+                        // T/P (Take Profit)
+                        if (text === 't / p' || text.includes('t/p') || text.includes('take')) {
+                            headerMapping.tp = idx;
                         }
                         // Close Time
                         if (text.includes('close') && text.includes('time')) {
@@ -670,8 +756,16 @@
                             (text === 'price' && headerMapping.openPrice && idx > headerMapping.openPrice)) {
                             headerMapping.closePrice = idx;
                         }
-                        // Profit
-                        if (text.includes('profit') || text.includes('損益')) {
+                        // Commission
+                        if (text.includes('commission') || text.includes('手数料')) {
+                            headerMapping.commission = idx;
+                        }
+                        // Swap
+                        if (text.includes('swap') || text.includes('スワップ')) {
+                            headerMapping.swap = idx;
+                        }
+                        // Profit - 最後の方の列を優先
+                        if (text.includes('profit') || text.includes('損益') || text === 'p/l') {
                             headerMapping.profit = idx;
                         }
                     });
@@ -705,9 +799,13 @@
                                 size: 3,
                                 symbol: 4,
                                 openPrice: 5,
+                                sl: 6,
+                                tp: 7,
                                 closeTime: 8,
                                 closePrice: 9,
-                                profit: cells.length - 1 // 最後の列が利益であることが多い
+                                commission: 10,
+                                swap: 11,
+                                profit: 12
                             };
                             console.log('位置ベースのマッピング使用:', headerMapping);
                             break;
@@ -731,6 +829,8 @@
                 // 空行やサマリー行をスキップ
                 if (cellTexts.every(text => text === '')) continue;
                 if (cellTexts.some(text => text.toLowerCase().includes('total') || text.toLowerCase().includes('合計'))) continue;
+                if (cellTexts.some(text => text.toLowerCase().includes('closed p/l'))) continue;
+                if (cellTexts.some(text => text.toLowerCase().includes('balance'))) continue;
                 
                 // Type列の値を取得（大文字小文字を考慮）
                 const typeIndex = headerMapping.type !== undefined ? headerMapping.type : 2;
@@ -758,6 +858,7 @@
                 // 通貨記号や空白を除去
                 profitText = profitText.replace(/[^\d\.\-,]/g, '');
                 profitText = profitText.replace(/,/g, '');
+                profitText = profitText.replace(/\s/g, '');
                 const profit = parseFloat(profitText);
                 
                 if (isNaN(profit)) {
@@ -777,9 +878,16 @@
                     continue;
                 }
                 
-                // シンボルの取得
+                // シンボルの取得（空白を除去）
                 const symbolIndex = headerMapping.symbol !== undefined ? headerMapping.symbol : 4;
-                const symbol = cellTexts[symbolIndex] || 'UNKNOWN';
+                let symbol = cellTexts[symbolIndex] || 'UNKNOWN';
+                symbol = symbol.replace(/\s/g, ''); // 空白を除去
+                
+                // シンボルが空の場合はスキップ
+                if (!symbol || symbol === 'UNKNOWN' || symbol === '') {
+                    console.log('シンボルが無効:', cellTexts[symbolIndex]);
+                    continue;
+                }
                 
                 // サイズの取得
                 const sizeIndex = headerMapping.size !== undefined ? headerMapping.size : 3;
@@ -811,18 +919,55 @@
             }
             
             console.log('パース完了: 取引数 =', trades.length);
+            if (trades.length > 0) {
+                console.log('最初の取引データ:', trades[0]);
+                // シンボルの一覧を表示
+                const symbols = [...new Set(trades.map(t => t.symbol))];
+                console.log('検出された通貨ペア:', symbols);
+            }
             return trades;
         }
 
-        // 日時パース
+        // 日時パース（複数フォーマット対応）
         function parseDateTime(dateStr) {
             if (!dateStr) return null;
-            const match = dateStr.match(/(\d{4})[./](\d{2})[./](\d{2})\s+(\d{2}):(\d{2})/);
+            
+            // フォーマット1: 2024.10.15 12:34 または 2024/10/15 12:34
+            let match = dateStr.match(/(\d{4})[.\/](\d{2})[.\/](\d{2})\s+(\d{1,2}):(\d{2})/);
             if (match) {
                 const [, year, month, day, hour, minute] = match.map(Number);
                 const d = new Date(year, month - 1, day, hour, minute);
                 if (!isNaN(d.getTime())) return d;
             }
+            
+            // フォーマット2: 2024.10.15 12:34:56
+            match = dateStr.match(/(\d{4})[.\/](\d{2})[.\/](\d{2})\s+(\d{1,2}):(\d{2}):(\d{2})/);
+            if (match) {
+                const [, year, month, day, hour, minute, second] = match.map(Number);
+                const d = new Date(year, month - 1, day, hour, minute, second);
+                if (!isNaN(d.getTime())) return d;
+            }
+            
+            // フォーマット3: 10/15/2024 12:34 PM (US format)
+            match = dateStr.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})\s+(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+            if (match) {
+                let [, month, day, year, hour, minute, ampm] = match;
+                hour = Number(hour);
+                if (ampm && ampm.toUpperCase() === 'PM' && hour !== 12) hour += 12;
+                if (ampm && ampm.toUpperCase() === 'AM' && hour === 12) hour = 0;
+                const d = new Date(Number(year), Number(month) - 1, Number(day), hour, Number(minute));
+                if (!isNaN(d.getTime())) return d;
+            }
+            
+            // フォーマット4: 15.10.2024 12:34 (EU format)
+            match = dateStr.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{4})\s+(\d{1,2}):(\d{2})/);
+            if (match) {
+                const [, day, month, year, hour, minute] = match.map(Number);
+                const d = new Date(year, month - 1, day, hour, minute);
+                if (!isNaN(d.getTime())) return d;
+            }
+            
+            console.log('日時パース失敗:', dateStr);
             return null;
         }
 
@@ -865,7 +1010,7 @@
             document.getElementById('totalProfit').className = `metric-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}`;
         }
 
-        // 統計計算
+        // 統計計算（修正版）
         function calculateStats(trades) {
             if (!trades || trades.length === 0) {
                 return {
@@ -883,14 +1028,24 @@
             
             const wins = trades.filter(t => t.isWin);
             const losses = trades.filter(t => !t.isWin);
-            const totalWin = wins.reduce((sum, t) => sum + t.profit, 0);
+            const totalWin = wins.reduce((sum, t) => sum + Math.abs(t.profit), 0);
             const totalLoss = Math.abs(losses.reduce((sum, t) => sum + t.profit, 0));
-            const totalProfit = totalWin - totalLoss;
+            const totalProfit = trades.reduce((sum, t) => sum + t.profit, 0);
+            
+            // プロフィットファクターの計算を修正（上限を設定）
+            let profitFactor = 0;
+            if (totalLoss > 0) {
+                profitFactor = totalWin / totalLoss;
+                // 非現実的な値を制限
+                if (profitFactor > 99) profitFactor = 99;
+            } else if (totalWin > 0) {
+                profitFactor = 99; // 損失がない場合は99とする
+            }
             
             return {
                 totalTrades: trades.length,
                 winRate: trades.length > 0 ? (wins.length / trades.length) * 100 : 0,
-                profitFactor: totalLoss > 0 ? totalWin / totalLoss : (totalWin > 0 ? 999 : 0),
+                profitFactor: profitFactor,
                 expectedValue: trades.length > 0 ? totalProfit / trades.length : 0,
                 totalProfit,
                 totalWin,
@@ -929,8 +1084,19 @@
             const chartData = [];
             const chartColors = [];
             
+            // 方向別チャート用データ
+            const directionChartLabels = [];
+            const longPFData = [];
+            const shortPFData = [];
+            const longWinRateData = [];
+            const shortWinRateData = [];
+            const longEVData = [];
+            const shortEVData = [];
+            
             Object.entries(symbolStats).forEach(([symbol, data]) => {
                 const stats = calculateStats(data.trades);
+                const longStats = calculateStats(data.longTrades);
+                const shortStats = calculateStats(data.shortTrades);
                 
                 // 状態判定
                 let badge = '';
@@ -954,6 +1120,15 @@
                 chartLabels.push(symbol);
                 chartData.push(stats.profitFactor);
                 chartColors.push(stats.profitFactor >= 1.5 ? '#48bb78' : stats.profitFactor >= 1.0 ? '#4299e1' : '#f56565');
+                
+                // 方向別チャートデータ
+                directionChartLabels.push(symbol);
+                longPFData.push(longStats.profitFactor);
+                shortPFData.push(-shortStats.profitFactor); // 負の値で下向きに表示
+                longWinRateData.push(longStats.winRate);
+                shortWinRateData.push(shortStats.winRate);
+                longEVData.push(longStats.expectedValue);
+                shortEVData.push(shortStats.expectedValue);
             });
             
             // チャート作成
@@ -979,43 +1154,284 @@
                 }
             });
             
-            // 方向別分析の作成
-            createDirectionAnalysis(symbolStats);
+            // 方向別分析の作成（詳細テーブル＋二色棒グラフ）
+            createDirectionAnalysis(symbolStats, directionChartLabels, longPFData, shortPFData, longWinRateData, shortWinRateData, longEVData, shortEVData);
         }
 
-        // 方向別分析作成
-        function createDirectionAnalysis(symbolStats) {
+        // 方向別分析作成（強化版）
+        function createDirectionAnalysis(symbolStats, labels, longPFData, shortPFData, longWinRateData, shortWinRateData, longEVData, shortEVData) {
             const container = document.getElementById('symbolDirectionContent');
-            let html = '<table class="data-table"><thead><tr><th>通貨ペア</th><th>方向</th><th>取引数</th><th>勝率</th><th>PF</th><th>期待値</th><th>総損益</th></tr></thead><tbody>';
+            
+            // 統計テーブル
+            let html = `
+                <div style="margin-bottom: 30px;">
+                    <h4 style="color: #4a5568; margin-bottom: 15px;">📊 通貨×方向別 詳細統計</h4>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>通貨ペア</th>
+                                <th>方向</th>
+                                <th>取引数</th>
+                                <th>勝率</th>
+                                <th>PF</th>
+                                <th>期待値(EV)</th>
+                                <th>総損益</th>
+                                <th>評価</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
             
             Object.entries(symbolStats).forEach(([symbol, data]) => {
                 const longStats = calculateStats(data.longTrades);
                 const shortStats = calculateStats(data.shortTrades);
                 
-                // LONG
-                html += `<tr>
-                    <td rowspan="2"><strong>${symbol}</strong></td>
-                    <td><span style="color: #48bb78;">▲ LONG</span></td>
+                // LONG評価
+                let longBadge = '';
+                if (longStats.profitFactor >= 1.5) longBadge = '⭐';
+                else if (longStats.profitFactor >= 1.0) longBadge = '✓';
+                else longBadge = '⚠';
+                
+                // SHORT評価
+                let shortBadge = '';
+                if (shortStats.profitFactor >= 1.5) shortBadge = '⭐';
+                else if (shortStats.profitFactor >= 1.0) shortBadge = '✓';
+                else shortBadge = '⚠';
+                
+                // LONG行
+                html += `<tr style="background: rgba(72, 187, 120, 0.05);">
+                    <td rowspan="2" style="vertical-align: middle;"><strong>${symbol}</strong></td>
+                    <td><span style="color: #48bb78; font-weight: bold;">▲ LONG</span></td>
                     <td>${longStats.totalTrades}</td>
                     <td class="${longStats.winRate >= 55 ? 'positive' : ''}">${longStats.winRate.toFixed(1)}%</td>
                     <td class="${longStats.profitFactor >= 1.5 ? 'positive' : ''}">${longStats.profitFactor.toFixed(2)}</td>
                     <td class="${longStats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(longStats.expectedValue).toLocaleString()}</td>
                     <td class="${longStats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(longStats.totalProfit).toLocaleString()}</td>
+                    <td style="text-align: center; font-size: 1.2em;">${longBadge}</td>
                 </tr>`;
                 
-                // SHORT
-                html += `<tr>
-                    <td><span style="color: #f56565;">▼ SHORT</span></td>
+                // SHORT行
+                html += `<tr style="background: rgba(245, 101, 101, 0.05);">
+                    <td><span style="color: #f56565; font-weight: bold;">▼ SHORT</span></td>
                     <td>${shortStats.totalTrades}</td>
                     <td class="${shortStats.winRate >= 55 ? 'positive' : ''}">${shortStats.winRate.toFixed(1)}%</td>
                     <td class="${shortStats.profitFactor >= 1.5 ? 'positive' : ''}">${shortStats.profitFactor.toFixed(2)}</td>
                     <td class="${shortStats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(shortStats.expectedValue).toLocaleString()}</td>
                     <td class="${shortStats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(shortStats.totalProfit).toLocaleString()}</td>
+                    <td style="text-align: center; font-size: 1.2em;">${shortBadge}</td>
                 </tr>`;
             });
             
-            html += '</tbody></table>';
+            html += `</tbody></table></div>`;
+            
+            // 二色棒グラフセクション
+            html += `
+                <div style="margin-bottom: 30px;">
+                    <h4 style="color: #4a5568; margin-bottom: 15px;">📈 方向別パフォーマンス比較（二色棒グラフ）</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+                        <div>
+                            <h5 style="text-align: center; color: #718096; margin-bottom: 10px;">プロフィットファクター (PF)</h5>
+                            <div class="chart-container" style="height: 250px;">
+                                <canvas id="directionPFChart"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 style="text-align: center; color: #718096; margin-bottom: 10px;">勝率 (%)</h5>
+                            <div class="chart-container" style="height: 250px;">
+                                <canvas id="directionWinRateChart"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h5 style="text-align: center; color: #718096; margin-bottom: 10px;">期待値 (EV)</h5>
+                            <div class="chart-container" style="height: 250px;">
+                                <canvas id="directionEVChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            
+            // サマリー統計
+            const allLongTrades = [];
+            const allShortTrades = [];
+            Object.values(symbolStats).forEach(data => {
+                allLongTrades.push(...data.longTrades);
+                allShortTrades.push(...data.shortTrades);
+            });
+            
+            const totalLongStats = calculateStats(allLongTrades);
+            const totalShortStats = calculateStats(allShortTrades);
+            
+            html += `
+                <div style="margin-top: 30px; padding: 20px; background: #f7fafc; border-radius: 10px;">
+                    <h4 style="color: #4a5568; margin-bottom: 15px;">📋 方向別サマリー</h4>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #48bb78;">
+                            <h5 style="color: #48bb78; margin-bottom: 10px;">▲ LONG 全体統計</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                                <div>取引数: <strong>${totalLongStats.totalTrades}</strong></div>
+                                <div>勝率: <strong class="${totalLongStats.winRate >= 55 ? 'positive' : ''}">${totalLongStats.winRate.toFixed(1)}%</strong></div>
+                                <div>PF: <strong class="${totalLongStats.profitFactor >= 1.5 ? 'positive' : ''}">${totalLongStats.profitFactor.toFixed(2)}</strong></div>
+                                <div>期待値: <strong class="${totalLongStats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(totalLongStats.expectedValue).toLocaleString()}</strong></div>
+                                <div style="grid-column: span 2;">総損益: <strong class="${totalLongStats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(totalLongStats.totalProfit).toLocaleString()}</strong></div>
+                            </div>
+                        </div>
+                        <div style="padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #f56565;">
+                            <h5 style="color: #f56565; margin-bottom: 10px;">▼ SHORT 全体統計</h5>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 0.9em;">
+                                <div>取引数: <strong>${totalShortStats.totalTrades}</strong></div>
+                                <div>勝率: <strong class="${totalShortStats.winRate >= 55 ? 'positive' : ''}">${totalShortStats.winRate.toFixed(1)}%</strong></div>
+                                <div>PF: <strong class="${totalShortStats.profitFactor >= 1.5 ? 'positive' : ''}">${totalShortStats.profitFactor.toFixed(2)}</strong></div>
+                                <div>期待値: <strong class="${totalShortStats.expectedValue > 0 ? 'positive' : 'negative'}">¥${Math.round(totalShortStats.expectedValue).toLocaleString()}</strong></div>
+                                <div style="grid-column: span 2;">総損益: <strong class="${totalShortStats.totalProfit >= 0 ? 'positive' : 'negative'}">¥${Math.round(totalShortStats.totalProfit).toLocaleString()}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            
             container.innerHTML = html;
+            
+            // グラフを少し遅延して作成（DOMが準備されるのを待つ）
+            setTimeout(() => {
+                // PFの二色棒グラフ
+                createChart('directionPFChart', {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'LONG',
+                                data: longPFData,
+                                backgroundColor: 'rgba(72, 187, 120, 0.8)',
+                                borderColor: '#48bb78',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'SHORT',
+                                data: shortPFData,
+                                backgroundColor: 'rgba(245, 101, 101, 0.8)',
+                                borderColor: '#f56565',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = Math.abs(context.parsed.y);
+                                        return `${context.dataset.label}: ${value.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { display: true, text: 'PF' },
+                                ticks: {
+                                    callback: function(value) {
+                                        return Math.abs(value).toFixed(1);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                // 勝率の二色棒グラフ
+                createChart('directionWinRateChart', {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'LONG',
+                                data: longWinRateData,
+                                backgroundColor: 'rgba(72, 187, 120, 0.8)',
+                                borderColor: '#48bb78',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'SHORT',
+                                data: shortWinRateData,
+                                backgroundColor: 'rgba(245, 101, 101, 0.8)',
+                                borderColor: '#f56565',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                title: { display: true, text: '勝率 (%)' }
+                            }
+                        }
+                    }
+                });
+                
+                // 期待値の二色棒グラフ
+                createChart('directionEVChart', {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'LONG',
+                                data: longEVData,
+                                backgroundColor: 'rgba(72, 187, 120, 0.8)',
+                                borderColor: '#48bb78',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'SHORT',
+                                data: shortEVData,
+                                backgroundColor: 'rgba(245, 101, 101, 0.8)',
+                                borderColor: '#f56565',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: ¥${Math.round(context.parsed.y).toLocaleString()}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                title: { display: true, text: '期待値 (¥)' },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '¥' + Math.round(value).toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }, 100);
         }
 
         // 曜日別分析

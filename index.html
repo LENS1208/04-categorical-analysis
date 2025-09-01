@@ -669,8 +669,8 @@
 <body class="dark-mode">
     <div class="container">
         <header>
-            <h1>FX取引分析ツール Enhanced</h1>
-            <p>MT4/MT5の取引履歴から、勝ちパターンを発見する</p>
+            <h1>④分類別の分析</h1>
+            <p通貨ペア、曜日、時間帯別に成績を比較</p>
             <button class="theme-toggle" onclick="toggleTheme()">
                 <svg viewBox="0 0 24 24" id="theme-icon">
                     <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
@@ -891,6 +891,166 @@
         const errorEl = document.getElementById('errorMessage');
         const resultsEl = document.getElementById('analysisResults');
 
+        // 共有デモデータ（全カテゴリー統一）
+        const DEMO_TRADERS = {
+            excellent: {
+                name: "優秀なトレーダー",
+                description: "勝率75%、高い期待値を持つトレーダーのデータ",
+                kpi: {
+                    totalTrades: 150,
+                    winRate: 75.2,
+                    totalProfit: 320000,
+                    avgProfit: 12800,
+                    avgLoss: -4200,
+                    expectedValue: 2133,
+                    profitFactor: 3.05
+                },
+                delta: { pf: 0.25, ev: 1200, wr: -2.1 },
+                pareto: {
+                    top: [45000, 38000, 32000, 28000, 25000],
+                    bottom: [-8000, -6500, -5200, -4800, -4100]
+                },
+                streaks: {
+                    win: [8, 6, 5, 4, 3],
+                    lose: [2, 2, 1, 1, 1]
+                }
+            },
+            average: {
+                name: "平均的なトレーダー", 
+                description: "勝率55%、標準的なパフォーマンスのトレーダーデータ",
+                kpi: {
+                    totalTrades: 120,
+                    winRate: 55.8,
+                    totalProfit: 45000,
+                    avgProfit: 8500,
+                    avgLoss: -6200,
+                    expectedValue: 375,
+                    profitFactor: 1.18
+                },
+                delta: { pf: -0.15, ev: -800, wr: 1.8 },
+                pareto: {
+                    top: [25000, 18000, 15000, 12000, 10500],
+                    bottom: [-15000, -12000, -9500, -8200, -7100]
+                },
+                streaks: {
+                    win: [5, 4, 3, 3, 2],
+                    lose: [4, 3, 3, 2, 2]
+                }
+            },
+            poor: {
+                name: "改善が必要なトレーダー",
+                description: "勝率38%、損失超過のトレーダーデータ", 
+                kpi: {
+                    totalTrades: 95,
+                    winRate: 38.9,
+                    totalProfit: -85000,
+                    avgProfit: 6200,
+                    avgLoss: -8900,
+                    expectedValue: -895,
+                    profitFactor: 0.65
+                },
+                delta: { pf: -0.45, ev: -2100, wr: -8.3 },
+                pareto: {
+                    top: [18000, 12000, 9500, 8200, 7100],
+                    bottom: [-25000, -18000, -15000, -12000, -10500]
+                },
+                streaks: {
+                    win: [3, 2, 2, 1, 1],
+                    lose: [7, 5, 4, 4, 3]
+                }
+            }
+        };
+
+        // 統計データからトレード履歴を生成
+        function generateTradesFromKPI(traderData) {
+            const kpi = traderData.kpi;
+            const trades = [];
+            const winCount = Math.round(kpi.totalTrades * kpi.winRate / 100);
+            const loseCount = kpi.totalTrades - winCount;
+            
+            // 勝ちトレード生成
+            for (let i = 0; i < winCount; i++) {
+                const openTime = new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
+                const duration = 1800000 + Math.random() * 14400000; // 30分-4時間
+                const closeTime = new Date(openTime.getTime() + duration);
+                const profit = kpi.avgProfit * (0.5 + Math.random());
+                
+                trades.push({
+                    ticket: `${100000 + i}`,
+                    openTime,
+                    closeTime,
+                    type: Math.random() > 0.5 ? 'buy' : 'sell',
+                    direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
+                    size: 0.1,
+                    symbol: ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY'][Math.floor(Math.random() * 4)],
+                    openPrice: 100 + Math.random() * 50,
+                    closePrice: 100 + Math.random() * 50,
+                    profit,
+                    isWin: true,
+                    duration
+                });
+            }
+            
+            // 負けトレード生成
+            for (let i = 0; i < loseCount; i++) {
+                const openTime = new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
+                const duration = 1800000 + Math.random() * 14400000;
+                const closeTime = new Date(openTime.getTime() + duration);
+                const profit = kpi.avgLoss * (0.5 + Math.random());
+                
+                trades.push({
+                    ticket: `${200000 + i}`,
+                    openTime,
+                    closeTime,
+                    type: Math.random() > 0.5 ? 'buy' : 'sell',
+                    direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
+                    size: 0.1,
+                    symbol: ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY'][Math.floor(Math.random() * 4)],
+                    openPrice: 100 + Math.random() * 50,
+                    closePrice: 100 + Math.random() * 50,
+                    profit,
+                    isWin: false,
+                    duration
+                });
+            }
+            
+            return trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
+        }
+
+        // デモデータ生成関数（共有データから生成）
+        function generateGoodPerformanceData() {
+            fileNameEl.textContent = 'デモデータ: 優秀なトレーダーデータを使用中';
+            setLoading(true);
+            
+            setTimeout(() => {
+                allTrades = generateTradesFromKPI(DEMO_TRADERS.excellent);
+                performAnalysis();
+                setLoading(false);
+            }, 500);
+        }
+
+        function generateAveragePerformanceData() {
+            fileNameEl.textContent = 'デモデータ: 平均的なトレーダーデータを使用中';
+            setLoading(true);
+            
+            setTimeout(() => {
+                allTrades = generateTradesFromKPI(DEMO_TRADERS.average);
+                performAnalysis();
+                setLoading(false);
+            }, 500);
+        }
+
+        function generatePoorPerformanceData() {
+            fileNameEl.textContent = 'デモデータ: 改善が必要なトレーダーデータを使用中';
+            setLoading(true);
+            
+            setTimeout(() => {
+                allTrades = generateTradesFromKPI(DEMO_TRADERS.poor);
+                performAnalysis();
+                setLoading(false);
+            }, 500);
+        }
+
         // イベントリスナー
         fileInput.addEventListener('change', handleFileUpload);
 
@@ -940,526 +1100,14 @@
             });
         }
 
-        // デモデータ生成関数 - 元のコードと同じロジック
-        function generateGoodPerformanceData() {
-            fileNameEl.textContent = 'デモデータ: 優秀なトレーダーデータを使用中';
-            setLoading(true);
-            
-            setTimeout(() => {
-                const trades = [];
-                for (let i = 0; i < 150; i++) {
-                    const openTime = new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
-                    const duration = Math.random() * 43200000;
-                    const closeTime = new Date(openTime.getTime() + duration);
-                    const profit = (Math.random() - 0.25) * 15000; // 高い勝率を持つように調整
-                    const direction = Math.random() > 0.5 ? 'LONG' : 'SHORT';
-
-                    trades.push({
-                        ticket: `${100000 + i}`,
-                        openTime,
-                        closeTime,
-                        type: direction.toLowerCase(),
-                        direction,
-                        size: 0.1,
-                        symbol: ['USDJPY', 'EURJPY', 'GBPJPY'][Math.floor(Math.random() * 3)],
-                        openPrice: 100 + Math.random() * 50,
-                        closePrice: 100 + Math.random() * 50,
-                        profit,
-                        isWin: profit > 0,
-                        duration
-                    });
-                }
-                allTrades = trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
-                performAnalysis();
-                setLoading(false);
-            }, 500);
-        }
-
-        function generateAveragePerformanceData() {
-            fileNameEl.textContent = 'デモデータ: 平均的なトレーダーデータを使用中';
-            setLoading(true);
-            
-            setTimeout(() => {
-                const trades = [];
-                for (let i = 0; i < 100; i++) {
-                    const openTime = new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
-                    const duration = Math.random() * 86400000;
-                    const closeTime = new Date(openTime.getTime() + duration);
-                    const profit = (Math.random() - 0.45) * 12000; // 平均的なパフォーマンス
-                    const direction = Math.random() > 0.5 ? 'LONG' : 'SHORT';
-
-                    trades.push({
-                        ticket: `${100000 + i}`,
-                        openTime,
-                        closeTime,
-                        type: direction.toLowerCase(),
-                        direction,
-                        size: 0.1,
-                        symbol: ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY'][Math.floor(Math.random() * 4)],
-                        openPrice: 100 + Math.random() * 50,
-                        closePrice: 100 + Math.random() * 50,
-                        profit,
-                        isWin: profit > 0,
-                        duration
-                    });
-                }
-                allTrades = trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
-                performAnalysis();
-                setLoading(false);
-            }, 500);
-        }
-
-        function generatePoorPerformanceData() {
-            fileNameEl.textContent = 'デモデータ: 改善が必要なトレーダーデータを使用中';
-            setLoading(true);
-            
-            setTimeout(() => {
-                const trades = [];
-                for (let i = 0; i < 80; i++) {
-                    const openTime = new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1, Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
-                    const duration = Math.random() * 172800000;
-                    const closeTime = new Date(openTime.getTime() + duration);
-                    const profit = (Math.random() - 0.65) * 18000; // 損失傾向
-                    const direction = Math.random() > 0.5 ? 'LONG' : 'SHORT';
-
-                    trades.push({
-                        ticket: `${100000 + i}`,
-                        openTime,
-                        closeTime,
-                        type: direction.toLowerCase(),
-                        direction,
-                        size: 0.1,
-                        symbol: ['USDJPY', 'EURJPY', 'GBPJPY', 'AUDJPY', 'USDCHF'][Math.floor(Math.random() * 5)],
-                        openPrice: 100 + Math.random() * 50,
-                        closePrice: 100 + Math.random() * 50,
-                        profit,
-                        isWin: profit > 0,
-                        duration
-                    });
-                }
-                allTrades = trades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
-                performAnalysis();
-                setLoading(false);
-            }, 500);
-        }
-
-        // ファイルアップロード処理
+        // ファイルアップロード処理（UI開発専用 - 実際の解析は無効化）
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
-            // ファイルサイズ制限（10MB）
-            const maxSize = 10 * 1024 * 1024; // 10MB
-            if (file.size > maxSize) {
-                showError('ファイルサイズが10MBを超えています。より小さいファイルを選択してください。');
-                fileInput.value = '';
-                return;
-            }
-
-            // ファイル形式チェック
-            if (!file.name.match(/\.(html|htm)$/i)) {
-                showError('HTMLファイル（.html または .htm）を選択してください。');
-                fileInput.value = '';
-                return;
-            }
-
-            resetAnalysisView();
             fileNameEl.textContent = `選択されたファイル: ${file.name}`;
-            setLoading(true);
-
-            const reader = new FileReader();
-            reader.onerror = () => {
-                showError('ファイルの読み込みに失敗しました。');
-                setLoading(false);
-            };
-            reader.onload = (e) => {
-                try {
-                    parseMT4History(e.target.result);
-                } catch (error) {
-                    console.error('Parse error:', error);
-                    showError('ファイルの解析中にエラーが発生しました。正しいMT4/MT5の取引履歴ファイルか確認してください。');
-                    setLoading(false);
-                }
-            };
-            reader.readAsText(file, 'UTF-8');
-        }
-
-        // MT4/MT5 HTML解析メイン関数
-        function parseMT4History(htmlContent) {
-            try {
-                console.log('HTML content length:', htmlContent.length);
-                
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlContent, 'text/html');
-                
-                let parsedTrades = [];
-                
-                // テーブルから解析
-                const tables = doc.querySelectorAll('table');
-                console.log('Found tables:', tables.length);
-                
-                for (let table of tables) {
-                    const tableTrades = parseTableData(table);
-                    if (tableTrades.length > 0) {
-                        parsedTrades = parsedTrades.concat(tableTrades);
-                        console.log(`Parsed ${tableTrades.length} trades from table`);
-                    }
-                }
-                
-                // 代替フォーマット解析
-                if (parsedTrades.length === 0) {
-                    parsedTrades = parseAlternativeFormat(htmlContent);
-                }
-                
-                // 正規表現による解析
-                if (parsedTrades.length === 0) {
-                    parsedTrades = parseWithRegex(htmlContent);
-                }
-                
-                console.log(`Total parsed trades: ${parsedTrades.length}`);
-                onFileParsed(parsedTrades);
-                
-            } catch (error) {
-                console.error('Parse error:', error);
-                showError('ファイルの解析中にエラーが発生しました。ファイル形式を確認してください。');
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        // テーブルデータ解析
-        function parseTableData(table) {
-            const rows = table.querySelectorAll('tr');
-            if (rows.length < 2) return [];
-            
-            const parsedTrades = [];
-            let headerMapping = {};
-            let dataStartIndex = -1;
-
-            // ヘッダー行を探す
-            for (let i = 0; i < Math.min(15, rows.length); i++) {
-                const cells = rows[i].querySelectorAll('td, th');
-                if (cells.length < 8) continue;
-                
-                const cellTexts = Array.from(cells).map(cell => 
-                    cell.textContent.trim().toLowerCase().replace(/\s+/g, ' ')
-                );
-                
-                // ヘッダー検出
-                const hasTicket = cellTexts.some(text => 
-                    text.includes('ticket') || text.includes('order') || text.includes('#')
-                );
-                const hasTime = cellTexts.some(text => 
-                    text.includes('time') || text.includes('date') || text.includes('開始') || text.includes('終了')
-                );
-                const hasType = cellTexts.some(text => 
-                    text.includes('type') || text.includes('売買') || text.includes('buy') || text.includes('sell')
-                );
-                const hasProfit = cellTexts.some(text => 
-                    text.includes('profit') || text.includes('損益') || text.includes('pl') || text.includes('pnl')
-                );
-                
-                if ((hasTicket || hasTime) && (hasType || hasProfit)) {
-                    console.log('Header found at row:', i, cellTexts);
-                    
-                    // ヘッダーマッピングを構築
-                    cellTexts.forEach((text, idx) => {
-                        if (text.includes('ticket') || text.includes('order') || text === '#' || 
-                            (text.includes('no') && text.length < 5)) {
-                            headerMapping.ticket = idx;
-                        }
-                        if (text.includes('open') && text.includes('time') || 
-                            text.includes('開始') || text.includes('start')) {
-                            headerMapping.openTime = idx;
-                        }
-                        if (text.includes('close') && text.includes('time') || 
-                            text.includes('終了') || text.includes('end')) {
-                            headerMapping.closeTime = idx;
-                        }
-                        if (text.includes('type') || text.includes('売買') || 
-                            (text.includes('buy') || text.includes('sell')) && text.length < 10) {
-                            headerMapping.type = idx;
-                        }
-                        if (text.includes('size') || text.includes('lots') || text.includes('volume') || 
-                            text.includes('ロット') || text.includes('数量')) {
-                            headerMapping.size = idx;
-                        }
-                        if (text.includes('symbol') || text.includes('item') || text.includes('pair') || 
-                            text.includes('通貨') || text.includes('銘柄')) {
-                            headerMapping.symbol = idx;
-                        }
-                        if (text.includes('open') && text.includes('price') || 
-                            text.includes('開始価格') || text.includes('始値')) {
-                            headerMapping.openPrice = idx;
-                        }
-                        if (text.includes('close') && text.includes('price') || 
-                            text.includes('終了価格') || text.includes('終値')) {
-                            headerMapping.closePrice = idx;
-                        }
-                        if (text.includes('profit') || text.includes('損益') || text.includes('pl') || 
-                            text.includes('pnl') || text.includes('p/l')) {
-                            headerMapping.profit = idx;
-                        }
-                    });
-                    
-                    dataStartIndex = i + 1;
-                    break;
-                }
-            }
-
-            if (dataStartIndex === -1) {
-                console.log('No header found');
-                return [];
-            }
-
-            console.log('Header mapping:', headerMapping);
-
-            // データ行を解析
-            for (let i = dataStartIndex; i < rows.length; i++) {
-                const cells = rows[i].querySelectorAll('td');
-                if (cells.length < 8) continue;
-                
-                const cellTexts = Array.from(cells).map(cell => cell.textContent.trim());
-                
-                // チケット番号の検証
-                const ticketText = cellTexts[headerMapping.ticket] || '';
-                if (headerMapping.ticket !== undefined && !/\d/.test(ticketText)) continue;
-                
-                // 取引タイプの検証
-                const type = (cellTexts[headerMapping.type] || '').toLowerCase();
-                const isBuyOrSell = type.includes('buy') || type.includes('sell') || 
-                                  type.includes('購入') || type.includes('売却');
-                
-                // 損益データの検証
-                let profit = 0;
-                if (headerMapping.profit !== undefined) {
-                    const profitText = cellTexts[headerMapping.profit] || '';
-                    const profitMatch = profitText.match(/-?\d+(?:\.\d+)?/);
-                    if (profitMatch) {
-                        profit = parseFloat(profitMatch[0]);
-                    }
-                } else {
-                    const lastCellText = cellTexts[cellTexts.length - 1] || '';
-                    const profitMatch = lastCellText.match(/-?\d+(?:\.\d+)?/);
-                    if (profitMatch) {
-                        profit = parseFloat(profitMatch[0]);
-                    }
-                }
-                
-                if (isNaN(profit)) continue;
-
-                // 日時の解析
-                const openTime = parseDateTime(cellTexts[headerMapping.openTime]);
-                const closeTime = parseDateTime(cellTexts[headerMapping.closeTime]) || 
-                                parseDateTime(cellTexts[headerMapping.openTime]);
-                
-                if (!openTime) continue;
-
-                // 通貨ペアの取得
-                let symbol = cellTexts[headerMapping.symbol] || 'UNKNOWN';
-                if (symbol === 'UNKNOWN' && cellTexts.length > 5) {
-                    for (let cell of cellTexts) {
-                        if (/^[A-Z]{6}$/.test(cell) || /^[A-Z]{3}\/[A-Z]{3}$/.test(cell)) {
-                            symbol = cell;
-                            break;
-                        }
-                    }
-                }
-
-                const trade = {
-                    ticket: ticketText,
-                    openTime,
-                    closeTime: closeTime || openTime,
-                    type: isBuyOrSell ? (type.includes('buy') || type.includes('購入') ? 'buy' : 'sell') : 'unknown',
-                    direction: isBuyOrSell ? (type.includes('buy') || type.includes('購入') ? 'LONG' : 'SHORT') : 'UNKNOWN',
-                    size: parseFloat(cellTexts[headerMapping.size] || '1') || 1,
-                    symbol: symbol,
-                    openPrice: parseFloat(cellTexts[headerMapping.openPrice] || '0') || 0,
-                    closePrice: parseFloat(cellTexts[headerMapping.closePrice] || '0') || 0,
-                    profit,
-                    isWin: profit > 0,
-                    duration: closeTime && closeTime > openTime ? closeTime.getTime() - openTime.getTime() : 3600000
-                };
-
-                parsedTrades.push(trade);
-                console.log(`Parsed trade ${parsedTrades.length}:`, trade);
-            }
-            
-            return parsedTrades;
-        }
-
-        // 代替フォーマット解析
-        function parseAlternativeFormat(htmlContent) {
-            console.log('Trying alternative format parsing...');
-            const trades = [];
-            
-            const lines = htmlContent.split(/\n|<br>|<\/tr>/).filter(line => line.trim());
-            
-            for (let line of lines) {
-                const dateMatch = line.match(/\d{4}[./-]\d{2}[./-]\d{2}/);
-                const profitMatch = line.match(/-?\d+\.?\d*/g);
-                const symbolMatch = line.match(/[A-Z]{6}|[A-Z]{3}\/[A-Z]{3}/);
-                
-                if (dateMatch && profitMatch && profitMatch.length > 0) {
-                    const profit = parseFloat(profitMatch[profitMatch.length - 1]);
-                    if (!isNaN(profit)) {
-                        trades.push({
-                            openTime: new Date(dateMatch[0]),
-                            closeTime: new Date(dateMatch[0]),
-                            profit,
-                            symbol: symbolMatch ? symbolMatch[0] : 'UNKNOWN',
-                            isWin: profit > 0,
-                            type: Math.random() > 0.5 ? 'buy' : 'sell',
-                            direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
-                            size: 1,
-                            duration: 3600000
-                        });
-                    }
-                }
-            }
-            
-            console.log(`Alternative format found ${trades.length} trades`);
-            return trades;
-        }
-
-        // 正規表現による解析
-        function parseWithRegex(htmlContent) {
-            console.log('Trying regex parsing...');
-            const trades = [];
-            
-            const patterns = [
-                /(\d{4}[./-]\d{2}[./-]\d{2}).*?([A-Z]{6}|[A-Z]{3}\/[A-Z]{3}).*?(-?\d+\.?\d*)/g,
-                /(-?\d+\.?\d+)/g
-            ];
-            
-            for (let pattern of patterns) {
-                const matches = [...htmlContent.matchAll(pattern)];
-                
-                for (let match of matches) {
-                    if (match.length >= 2) {
-                        const profit = parseFloat(match[match.length - 1]);
-                        if (!isNaN(profit) && Math.abs(profit) > 0.01) {
-                            trades.push({
-                                openTime: new Date(),
-                                closeTime: new Date(),
-                                profit,
-                                symbol: match[2] || 'UNKNOWN',
-                                isWin: profit > 0,
-                                type: Math.random() > 0.5 ? 'buy' : 'sell',
-                                direction: Math.random() > 0.5 ? 'LONG' : 'SHORT',
-                                size: 1,
-                                duration: 3600000
-                            });
-                        }
-                    }
-                }
-                
-                if (trades.length > 0) break;
-            }
-            
-            console.log(`Regex parsing found ${trades.length} trades`);
-            return trades.slice(0, 200);
-        }
-
-        // 日時解析
-        function parseDateTime(dateStr) {
-            if (!dateStr) return null;
-            
-            const patterns = [
-                /(\d{4})[./](\d{2})[./](\d{2})\s+(\d{2}):(\d{2})/,
-                /(\d{4})[\/](\d{2})[\/](\d{2})\s+(\d{2}):(\d{2})/,
-                /(\d{2})[./](\d{2})[./](\d{4})\s+(\d{2}):(\d{2})/,
-                /(\d{2})[\/](\d{2})[\/](\d{4})\s+(\d{2}):(\d{2})/,
-                /(\d{4})[-](\d{2})[-](\d{2})\s+(\d{2}):(\d{2})/
-            ];
-            
-            for (let pattern of patterns) {
-                const match = dateStr.match(pattern);
-                if (match) {
-                    let year, month, day, hour, minute;
-                    
-                    if (pattern.source.startsWith('(\\d{4})')) {
-                        [, year, month, day, hour, minute] = match.map(Number);
-                    } else {
-                        if (pattern.source.includes('[./]')) {
-                            [, day, month, year, hour, minute] = match.map(Number);
-                        } else {
-                            [, month, day, year, hour, minute] = match.map(Number);
-                        }
-                    }
-                    
-                    const date = new Date(year, month - 1, day, hour || 0, minute || 0);
-                    if (!isNaN(date.getTime()) && year > 1990 && year < 2030) {
-                        return date;
-                    }
-                }
-            }
-            
-            const isoDate = new Date(dateStr);
-            if (!isNaN(isoDate.getTime())) {
-                return isoDate;
-            }
-            
-            return null;
-        }
-
-        // パースされたデータの処理
-        function onFileParsed(parsedTrades) {
-            console.log('Parsed trades received:', parsedTrades.length);
-            
-            if (parsedTrades && parsedTrades.length > 0) {
-                const cleanedTrades = parsedTrades.filter(trade => {
-                    // 基本的な検証のみ
-                    if (trade.profit === undefined || isNaN(trade.profit)) return false;
-                    if (!trade.openTime || !(trade.openTime instanceof Date) || isNaN(trade.openTime.getTime())) return false;
-                    
-                    // 取引時間の妥当性チェック
-                    if (trade.duration && trade.duration < 0) {
-                        console.warn('負の取引時間を検出:', trade.duration);
-                        trade.duration = Math.abs(trade.duration);
-                    }
-                    
-                    // 日付の妥当性チェック（2000年〜2030年）
-                    const year = trade.openTime.getFullYear();
-                    if (year < 2000 || year > 2030) {
-                        console.warn('異常な日付を検出:', trade.openTime);
-                        return false;
-                    }
-                    
-                    // 通貨ペアの正規化
-                    if (trade.symbol === 'UNKNOWN' || !trade.symbol) {
-                        trade.symbol = 'USDJPY'; // デフォルト値
-                    }
-                    
-                    return true;
-                });
-                
-                console.log(`Cleaned trades: ${cleanedTrades.length}/${parsedTrades.length}`);
-                
-                if (cleanedTrades.length === 0) {
-                    showError('有効な取引データが見つかりませんでした。ファイル内容を確認してください。');
-                    return;
-                }
-                
-                // 最低取引数のチェック
-                if (cleanedTrades.length < 10) {
-                    if (!confirm(`取引データが${cleanedTrades.length}件と少ないですが、分析を続けますか？\n（精度が低下する可能性があります）`)) {
-                        return;
-                    }
-                }
-                
-                allTrades = cleanedTrades.sort((a, b) => a.openTime.getTime() - b.openTime.getTime());
-                
-                const totalProfit = allTrades.reduce((sum, t) => sum + t.profit, 0);
-                const winTrades = allTrades.filter(t => t.isWin);
-                const winRate = (winTrades.length / allTrades.length * 100).toFixed(1);
-                
-                console.log(`解析完了: ${allTrades.length}取引, 勝率${winRate}%, 総損益${totalProfit.toFixed(2)}`);
-                
-                performAnalysis();
-            } else {
-                showError('ファイルから取引データを抽出できませんでした。MT4/MT5の取引履歴ファイルを確認してください。');
-            }
+            showError('UI開発専用モードです。デモボタンをご利用ください。');
+            fileInput.value = '';
         }
 
         // 分析リセット
@@ -1516,7 +1164,7 @@
             document.getElementById('totalProfit').className = `metric-value ${stats.totalProfit >= 0 ? 'positive' : 'negative'}`;
         }
 
-        // 統計計算 - 元のコードと同じ
+        // 統計計算
         function calculateStats(trades) {
             if (!trades || trades.length === 0) {
                 return {

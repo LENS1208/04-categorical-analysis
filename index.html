@@ -670,7 +670,7 @@
     <div class="container">
         <header>
             <h1>④分類別の分析</h1>
-            <p></p>通貨ペア、曜日、時間帯別に成績を比較＜UI開発＞</p>
+            <p>通貨ペア、曜日、時間帯別に成績を比較＜UI開発＞</p>
             <button class="theme-toggle" onclick="toggleTheme()">
                 <svg viewBox="0 0 24 24" id="theme-icon">
                     <path d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
@@ -725,6 +725,14 @@
                         <div class="metric-value" id="totalProfit">-</div>
                         <div class="metric-label">総損益</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- 損益パレート分析 NEW -->
+            <div class="analysis-card">
+                <h3>📊 損益パレート分析</h3>
+                <div class="chart-container">
+                    <canvas id="paretoChart"></canvas>
                 </div>
             </div>
 
@@ -1143,6 +1151,7 @@
             analyzeByWeekday();
             analyzeByTime();
             analyzeByMode();
+            analyzeParetoDistribution();
             resultsEl.style.display = 'block';
         }
 
@@ -1668,6 +1677,116 @@
                             position: 'right',
                             title: { display: true, text: '期待値 (¥)', color: isDarkMode ? '#e0e0e0' : '#333' },
                             ticks: { color: isDarkMode ? '#e0e0e0' : '#333' },
+                            grid: { drawOnChartArea: false }
+                        },
+                        x: {
+                            ticks: { color: isDarkMode ? '#e0e0e0' : '#333' },
+                            grid: { color: isDarkMode ? '#373737' : '#ebebeb' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 損益パレート分析（新機能）
+        function analyzeParetoDistribution() {
+            // 現在のトレーダープロファイルに基づいてデモデータを選択
+            let currentTrader;
+            if (fileNameEl.textContent.includes('優秀')) {
+                currentTrader = DEMO_TRADERS.excellent;
+            } else if (fileNameEl.textContent.includes('平均')) {
+                currentTrader = DEMO_TRADERS.average;
+            } else if (fileNameEl.textContent.includes('改善')) {
+                currentTrader = DEMO_TRADERS.poor;
+            } else {
+                // デフォルトは平均的なトレーダー
+                currentTrader = DEMO_TRADERS.average;
+            }
+
+            const profits = currentTrader.pareto.top;
+            const losses = currentTrader.pareto.bottom.map(x => Math.abs(x)); // 絶対値に変換
+            
+            // 累積寄与率計算
+            const totalProfit = profits.reduce((sum, v) => sum + v, 0);
+            const cumulative = [];
+            let runningSum = 0;
+            profits.forEach(profit => {
+                runningSum += profit;
+                cumulative.push((runningSum / totalProfit) * 100);
+            });
+            
+            // パレートチャート作成
+            createChart('paretoChart', {
+                type: 'bar',
+                data: {
+                    labels: profits.map((_, i) => `${i + 1}位`),
+                    datasets: [
+                        {
+                            label: '利益',
+                            data: profits,
+                            backgroundColor: isDarkMode ? 'rgba(0, 200, 255, 0.8)' : 'rgba(0, 126, 255, 0.8)',
+                            borderColor: isDarkMode ? '#00c8ff' : '#007eff',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '損失',
+                            data: losses.map(x => -x), // 負の値として表示
+                            backgroundColor: isDarkMode ? 'rgba(255, 50, 0, 0.8)' : 'rgba(255, 40, 0, 0.8)',
+                            borderColor: isDarkMode ? '#ff3200' : '#ff2800',
+                            borderWidth: 1,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '累積寄与率',
+                            data: cumulative,
+                            type: 'line',
+                            borderColor: '#6b7280',
+                            backgroundColor: 'transparent',
+                            tension: 0.2,
+                            yAxisID: 'y1',
+                            pointBackgroundColor: '#6b7280',
+                            pointBorderColor: '#6b7280',
+                            pointRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: isDarkMode ? '#e0e0e0' : '#333'
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: '損益 (¥)', color: isDarkMode ? '#e0e0e0' : '#333' },
+                            ticks: { 
+                                color: isDarkMode ? '#e0e0e0' : '#333',
+                                callback: function(value) {
+                                    return '¥' + Math.round(value).toLocaleString();
+                                }
+                            },
+                            grid: { color: isDarkMode ? '#373737' : '#ebebeb' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: '累積寄与率 (%)', color: isDarkMode ? '#e0e0e0' : '#333' },
+                            ticks: { 
+                                color: isDarkMode ? '#e0e0e0' : '#333',
+                                max: 100,
+                                callback: function(value) {
+                                    return value.toFixed(0) + '%';
+                                }
+                            },
                             grid: { drawOnChartArea: false }
                         },
                         x: {
